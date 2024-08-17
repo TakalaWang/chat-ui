@@ -5,9 +5,9 @@
 	import CarbonSendAltFilled from "~icons/carbon/send-alt-filled";
 	import CarbonExport from "~icons/carbon/export";
 	import CarbonStopFilledAlt from "~icons/carbon/stop-filled-alt";
+	import CarbonMicrophone from "~icons/carbon/Microphone";
 	import CarbonCheckmark from "~icons/carbon/checkmark";
 	import CarbonCaretDown from "~icons/carbon/caret-down";
-
 	import EosIconsLoading from "~icons/eos-icons/loading";
 
 	import ChatInput from "./ChatInput.svelte";
@@ -59,6 +59,7 @@
 		message: string;
 		share: void;
 		stop: void;
+		record: void;
 		retry: { id: Message["id"]; content?: string };
 		continue: { id: Message["id"] };
 	}>();
@@ -205,7 +206,7 @@
 						/>
 					{:else}
 						<div
-							class="flex size-6 items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
+							class="size-6 flex items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
 						>
 							{$page.data?.assistant.name[0]}
 						</div>
@@ -383,6 +384,14 @@
 							>
 								<EosIconsLoading />
 							</div>
+						{:else if !message}
+							<button
+								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
+								disabled={!message || isReadOnly}
+								type="button"
+							>
+								<CarbonMicrophone />
+							</button>
 						{:else}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
