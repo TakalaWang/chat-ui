@@ -39,6 +39,7 @@
 	export let messages: Message[] = [];
 	export let loading = false;
 	export let pending = false;
+	export let message = "";
 
 	export let shared = false;
 	export let currentModel: Model;
@@ -50,7 +51,6 @@
 	$: isReadOnly = !models.some((model) => model.id === currentModel.id);
 
 	let loginModalOpen = false;
-	let message: string;
 	let timeout: ReturnType<typeof setTimeout>;
 	let isSharedRecently = false;
 	$: $page.params.id && (isSharedRecently = false);
@@ -59,7 +59,7 @@
 		message: string;
 		share: void;
 		stop: void;
-		record: void;
+		recognize: void;
 		retry: { id: Message["id"]; content?: string };
 		continue: { id: Message["id"] };
 	}>();
@@ -229,6 +229,7 @@
 						model={currentModel}
 						on:retry
 						on:vote
+						on:play
 						on:continue
 					/>
 				</div>
@@ -387,7 +388,7 @@
 						{:else if !message}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
-								disabled={!message || isReadOnly}
+								on:click={() => dispatch("recognize")}
 								type="button"
 							>
 								<CarbonMicrophone />

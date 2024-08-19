@@ -31,6 +31,7 @@
 
 	let loading = false;
 	let pending = false;
+	let message: string = "";
 
 	let files: File[] = [];
 
@@ -308,6 +309,59 @@
 		}
 	}
 
+	async function playMessage(messageId: string) {
+		let conversationId = $page.params.id;
+		const playMessage = messages.find((message) => message.id === messageId)?.content;
+
+		const res: Response = await fetch(
+			`${base}/conversation/${conversationId}/message/${messageId}/play`,
+			{
+				method: "POST",
+				body: JSON.stringify({ message: playMessage }),
+			}
+		);
+
+		if (!res.ok) {
+			$error = "Error while async TTS.";
+			return;
+		}
+
+		const audioData = await res.arrayBuffer();
+		const blob = new Blob([audioData], { type: "audio/wav" });
+		const url = URL.createObjectURL(blob);
+		const audio = new Audio(url);
+		audio.play();
+	}
+
+	async function recognize() {
+		try {
+			let conversationId = $page.params.id;
+			pending = true;
+			console.log("recongize");
+			// TODO: record speaker
+			// let audio: AudioBuffer;
+			// TODO: fetch the Azure STT API
+			// message = await fetch(`${base}/conversation/${conversationId}/recognize`, {
+			// 	method: "POST",
+			// 	body: JSON.stringify({  }),
+			// }).then((res) => {
+			// });
+		} catch (err) {
+			if (err instanceof Error && err.message.includes("overloaded")) {
+				$error = "Too much traffic, please try again.";
+			} else if (err instanceof Error && err.message.includes("429")) {
+				$error = ERROR_MESSAGES.rateLimited;
+			} else if (err instanceof Error) {
+				$error = err.message;
+			} else {
+				$error = ERROR_MESSAGES.default;
+			}
+			console.error(err);
+		} finally {
+			pending = false;
+		}
+	}
+
 	onMount(async () => {
 		// only used in case of creating new conversations (from the parent POST endpoint)
 		if ($pendingMessage) {
@@ -391,9 +445,10 @@
 </svelte:head>
 
 <ChatWindow
+	{messages}
 	{loading}
 	{pending}
-	{messages}
+	{message}
 	shared={data.shared}
 	preprompt={data.preprompt}
 	bind:files
@@ -401,6 +456,8 @@
 	on:retry={onRetry}
 	on:continue={onContinue}
 	on:vote={(event) => voteMessage(event.detail.score, event.detail.id)}
+	on:play={(event) => playMessage(event.detail.id)}
+	on:recognize={() => recognize()}
 	on:share={() => shareConversation($page.params.id, data.title)}
 	on:stop={() => (($isAborted = true), (loading = false))}
 	models={data.models}

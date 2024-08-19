@@ -14,6 +14,7 @@
 	import CarbonDownload from "~icons/carbon/download";
 	import CarbonThumbsUp from "~icons/carbon/thumbs-up";
 	import CarbonThumbsDown from "~icons/carbon/thumbs-down";
+	import CarbonPlay from "~icons/carbon/volume-up";
 	import CarbonPen from "~icons/carbon/pen";
 	import CarbonChevronLeft from "~icons/carbon/chevron-left";
 	import CarbonChevronRight from "~icons/carbon/chevron-right";
@@ -74,6 +75,7 @@
 	const dispatch = createEventDispatcher<{
 		retry: { content?: string; id: Message["id"] };
 		vote: { score: Message["score"]; id: Message["id"] };
+		play: { id: Message["id"] };
 	}>();
 
 	let contentEl: HTMLElement;
@@ -231,7 +233,7 @@
 			/>
 		{/if}
 		<div
-			class="relative min-h-[calc(2rem+theme(spacing[3.5])*2)] min-w-[60px] break-words rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 px-5 py-3.5 text-gray-600 prose-pre:my-2 dark:border-gray-800 dark:from-gray-800/40 dark:text-gray-300"
+			class="prose-pre:my-2 relative min-h-[calc(2rem+theme(spacing[3.5])*2)] min-w-[60px] break-words rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 px-5 py-3.5 text-gray-600 dark:border-gray-800 dark:from-gray-800/40 dark:text-gray-300"
 		>
 			{#if message.files?.length}
 				<div class="flex h-fit flex-wrap gap-x-5 gap-y-2">
@@ -258,7 +260,7 @@
 			{/if}
 
 			<div
-				class="prose max-w-none dark:prose-invert max-sm:prose-sm prose-headings:font-semibold prose-h1:text-lg prose-h2:text-base prose-h3:text-base prose-pre:bg-gray-800 dark:prose-pre:bg-gray-900"
+				class="prose dark:prose-invert max-sm:prose-sm prose-headings:font-semibold prose-h1:text-lg prose-h2:text-base prose-h3:text-base prose-pre:bg-gray-800 dark:prose-pre:bg-gray-900 max-w-none"
 				bind:this={contentEl}
 			>
 				{#if isLast && loading && $settings.disableStream}
@@ -345,6 +347,14 @@
 					classNames="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
 					value={message.content}
 				/>
+				<button
+					class="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
+					title="Retry"
+					type="button"
+					on:click={() => dispatch("play", { id: message.id })}
+				>
+					<CarbonPlay />
+				</button>
 			</div>
 		{/if}
 	</div>
@@ -369,7 +379,7 @@
 			<div class="flex w-full flex-row flex-nowrap">
 				{#if !editMode}
 					<p
-						class="disabled w-full appearance-none whitespace-break-spaces text-wrap break-words bg-inherit px-5 py-3.5 text-gray-500 dark:text-gray-400"
+						class="disabled text-wrap w-full appearance-none whitespace-break-spaces break-words bg-inherit px-5 py-3.5 text-gray-500 dark:text-gray-400"
 					>
 						{message.content.trim()}
 					</p>
@@ -383,7 +393,7 @@
 						}}
 					>
 						<textarea
-							class="w-full whitespace-break-spaces break-words rounded-xl bg-gray-100 px-5 py-3.5 text-gray-500 *:h-max dark:bg-gray-800 dark:text-gray-400"
+							class="*:h-max w-full whitespace-break-spaces break-words rounded-xl bg-gray-100 px-5 py-3.5 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
 							rows="5"
 							bind:this={editContentEl}
 							value={message.content.trim()}
@@ -426,7 +436,7 @@
 						<div class="mx-auto flex flex-row flex-nowrap gap-2">
 							{#if downloadLink}
 								<a
-									class="rounded-lg border border-gray-100 bg-gray-100 p-1 text-xs text-gray-400 group-hover:block hover:text-gray-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300 max-sm:!hidden md:hidden"
+									class="rounded-lg border border-gray-100 bg-gray-100 p-1 text-xs text-gray-400 hover:text-gray-500 group-hover:block dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300 max-sm:!hidden md:hidden"
 									title="Download prompt and parameters"
 									type="button"
 									target="_blank"
@@ -437,7 +447,7 @@
 							{/if}
 							{#if !readOnly}
 								<button
-									class="cursor-pointer rounded-lg border border-gray-100 bg-gray-100 p-1 text-xs text-gray-400 group-hover:block hover:text-gray-500 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300 md:hidden lg:-right-2"
+									class="cursor-pointer rounded-lg border border-gray-100 bg-gray-100 p-1 text-xs text-gray-400 hover:text-gray-500 group-hover:block dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300 md:hidden lg:-right-2"
 									title="Branch"
 									type="button"
 									on:click={() => ($convTreeStore.editing = message.id)}
@@ -464,6 +474,7 @@
 		id={messages.find((m) => m.id === id)?.children?.[childrenToRender]}
 		on:retry
 		on:vote
+		on:play
 		on:continue
 	>
 		<svelte:fragment slot="childrenNav">
