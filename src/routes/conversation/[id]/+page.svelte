@@ -31,6 +31,7 @@
 
 	let loading = false;
 	let pending = false;
+	let recording = false;
 	let message: string = "";
 
 	let files: File[] = [];
@@ -313,52 +314,96 @@
 		let conversationId = $page.params.id;
 		const playMessage = messages.find((message) => message.id === messageId)?.content;
 
-		const res: Response = await fetch(
-			`${base}/conversation/${conversationId}/message/${messageId}/play`,
-			{
-				method: "POST",
-				body: JSON.stringify({ message: playMessage }),
-			}
-		);
+		try {
+			const res: Response = await fetch(
+				`${base}/conversation/${conversationId}/message/${messageId}/play`,
+				{
+					method: "POST",
+					body: JSON.stringify({ message: playMessage }),
+				}
+			);
 
-		if (!res.ok) {
+			if (!res.ok) {
+				$error = "Error while async TTS.";
+				return;
+			}
+
+			const audioData = await res.arrayBuffer();
+			const blob = new Blob([audioData], { type: "audio/wav" });
+			const url = URL.createObjectURL(blob);
+			const audio = new Audio(url);
+			audio.play();
+		} catch (err) {
 			$error = "Error while async TTS.";
 			return;
 		}
-
-		const audioData = await res.arrayBuffer();
-		const blob = new Blob([audioData], { type: "audio/wav" });
-		const url = URL.createObjectURL(blob);
-		const audio = new Audio(url);
-		audio.play();
 	}
 
-	async function recognize() {
+	let mediaRecorder: MediaRecorder;
+	let audioChunks: Blob[] = [];
+	// TODO: need setting to PCM format for STT
+
+	async function startRecording() {
 		try {
-			let conversationId = $page.params.id;
-			pending = true;
-			console.log("recongize");
-			// TODO: record speaker
-			// let audio: AudioBuffer;
-			// TODO: fetch the Azure STT API
-			// message = await fetch(`${base}/conversation/${conversationId}/recognize`, {
-			// 	method: "POST",
-			// 	body: JSON.stringify({  }),
-			// }).then((res) => {
-			// });
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaRecorder = new MediaRecorder(stream);
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunks.push(event.data);
+			};
 		} catch (err) {
-			if (err instanceof Error && err.message.includes("overloaded")) {
-				$error = "Too much traffic, please try again.";
-			} else if (err instanceof Error && err.message.includes("429")) {
-				$error = ERROR_MESSAGES.rateLimited;
-			} else if (err instanceof Error) {
-				$error = err.message;
-			} else {
-				$error = ERROR_MESSAGES.default;
+			$error = "Error while accessing microphone.";
+			return;
+		}
+
+		recording = true;
+		mediaRecorder.start();
+	}
+
+	async function stopRecording() {
+		recording = false;
+		pending = true;
+
+		mediaRecorder.onstop = async () => {
+			const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+			const recordData = await audioBlob.arrayBuffer();
+			await recognizeRecording(recordData)
+				.then((text) => {
+					message = text;
+				})
+				.catch((err) => {
+					$error = "Error while async STT.";
+					console.error(err);
+				})
+				.finally(() => {
+					pending = false;
+					audioChunks = [];
+				});
+		};
+		mediaRecorder.stop();
+	}
+
+	async function recognizeRecording(recordData: ArrayBuffer): Promise<string> {
+		let conversationId = $page.params.id;
+		try {
+			console.log("recordData", recordData);
+			const res: Response = await fetch(`${base}/conversation/${conversationId}/recognize`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/arraybuffer",
+				},
+				body: recordData,
+			});
+
+			if (!res.ok) {
+				$error = "Error while async STT.";
+				return "";
 			}
+
+			return await res.text();
+		} catch (err) {
+			$error = "Error while async STT.";
 			console.error(err);
-		} finally {
-			pending = false;
+			return "";
 		}
 	}
 
@@ -448,6 +493,7 @@
 	{messages}
 	{loading}
 	{pending}
+	{recording}
 	{message}
 	shared={data.shared}
 	preprompt={data.preprompt}
@@ -457,7 +503,8 @@
 	on:continue={onContinue}
 	on:vote={(event) => voteMessage(event.detail.score, event.detail.id)}
 	on:play={(event) => playMessage(event.detail.id)}
-	on:recognize={() => recognize()}
+	on:startRecording={() => startRecording()}
+	on:stopRecording={() => stopRecording()}
 	on:share={() => shareConversation($page.params.id, data.title)}
 	on:stop={() => (($isAborted = true), (loading = false))}
 	models={data.models}

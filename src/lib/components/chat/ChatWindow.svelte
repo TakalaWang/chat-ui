@@ -39,6 +39,7 @@
 	export let messages: Message[] = [];
 	export let loading = false;
 	export let pending = false;
+	export let recording = false;
 	export let message = "";
 
 	export let shared = false;
@@ -59,7 +60,8 @@
 		message: string;
 		share: void;
 		stop: void;
-		recognize: void;
+		startRecording: void;
+		stopRecording: void;
 		retry: { id: Message["id"]; content?: string };
 		continue: { id: Message["id"] };
 	}>();
@@ -385,10 +387,18 @@
 							>
 								<EosIconsLoading />
 							</div>
+						{:else if recording}
+							<button
+								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
+								on:click={() => dispatch("stopRecording")}
+								type="button"
+							>
+								<CarbonStopFilledAlt />
+							</button>
 						{:else if !message}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
-								on:click={() => dispatch("recognize")}
+								on:click={() => dispatch("startRecording")}
 								type="button"
 							>
 								<CarbonMicrophone />
