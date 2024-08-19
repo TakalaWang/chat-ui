@@ -9,19 +9,19 @@ export async function POST({ request }) {
 		})
 		.parse(await request.json());
 
-	const speechConfig = SpeechConfig.fromSubscription(env.SPEECH_KEY, env.SPEECH_REGION);
-	speechConfig.speechSynthesisLanguage = env.SPEECH_REGION;
-	speechConfig.speechSynthesisVoiceName = "en-US-AndrewNeural";
-
 	try {
-		const audioData: ArrayBuffer = await asyncSpeech(message, speechConfig);
+		const audioData: ArrayBuffer = await asyncSpeech(message);
 		return new Response(audioData, { headers: { "Content-Type": "audio/wav" }, status: 200 });
 	} catch (err) {
 		return Response.json({ message: "Async speech fail" }, { status: 404 });
 	}
 }
 
-async function asyncSpeech(message: string, speechConfig: SpeechConfig): Promise<ArrayBuffer> {
+async function asyncSpeech(message: string, name?: string): Promise<ArrayBuffer> {
+	const speechConfig = SpeechConfig.fromSubscription(env.SPEECH_KEY, env.SPEECH_REGION);
+	speechConfig.speechSynthesisLanguage = env.SPEECH_REGION;
+	speechConfig.speechSynthesisVoiceName = name || "en-US-AndrewNeural";
+
 	const speechSynthesizer = new SpeechSynthesizer(speechConfig);
 	return new Promise((resolve, reject) => {
 		speechSynthesizer.speakTextAsync(
@@ -30,7 +30,7 @@ async function asyncSpeech(message: string, speechConfig: SpeechConfig): Promise
 				const { audioData } = result;
 				speechSynthesizer.close();
 				if (audioData) {
-					resolve(result.audioData);
+					resolve(audioData);
 				} else {
 					reject("No result from speech synthesis");
 				}
