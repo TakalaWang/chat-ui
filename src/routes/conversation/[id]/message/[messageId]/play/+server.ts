@@ -17,10 +17,10 @@ export async function POST({ request }) {
 	}
 }
 
-async function asyncSpeech(message: string, name?: string): Promise<ArrayBuffer> {
+async function asyncSpeech(message: string, voice?: string): Promise<ArrayBuffer> {
 	const speechConfig = SpeechConfig.fromSubscription(env.SPEECH_KEY, env.SPEECH_REGION);
 	speechConfig.speechSynthesisLanguage = env.SPEECH_REGION;
-	speechConfig.speechSynthesisVoiceName = name || "en-US-AndrewNeural";
+	speechConfig.speechSynthesisVoiceName = voice || "en-US-AndrewNeural";
 
 	const speechSynthesizer = new SpeechSynthesizer(speechConfig);
 	return new Promise((resolve, reject) => {
