@@ -15,6 +15,7 @@ const newAsssistantSchema = z.object({
 	name: z.string().min(1),
 	modelId: z.string().min(1),
 	preprompt: z.string().min(1),
+	voiceId: z.string().optional(),
 	description: z.string().optional(),
 	exampleInput1: z.string().optional(),
 	exampleInput2: z.string().optional(),

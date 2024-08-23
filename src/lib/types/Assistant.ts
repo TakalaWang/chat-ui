@@ -10,6 +10,7 @@ export interface Assistant extends Timestamps {
 	name: string;
 	description?: string;
 	modelId: string;
+	voiceId: string;
 	exampleInputs: string[];
 	preprompt: string;
 	userCount?: number;

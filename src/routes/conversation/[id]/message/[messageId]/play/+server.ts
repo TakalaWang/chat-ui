@@ -3,14 +3,15 @@ import { env } from "$env/dynamic/private";
 import { SpeechConfig, SpeechSynthesizer } from "microsoft-cognitiveservices-speech-sdk";
 
 export async function POST({ request }) {
-	const { message } = z
+	const { message, voiceId } = z
 		.object({
 			message: z.string(),
+			voiceId: z.string().optional(),
 		})
 		.parse(await request.json());
 
 	try {
-		const audioData: ArrayBuffer = await asyncSpeech(message);
+		const audioData: ArrayBuffer = await asyncSpeech(message, voiceId);
 		return new Response(audioData, { headers: { "Content-Type": "audio/wav" }, status: 200 });
 	} catch (err) {
 		return Response.json({ message: "Async speech fail" }, { status: 404 });
