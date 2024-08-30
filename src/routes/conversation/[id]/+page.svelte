@@ -24,6 +24,7 @@
 	import { createConvTreeStore } from "$lib/stores/convTree";
 	import type { v4 } from "uuid";
 	import { useSettingsStore } from "$lib/stores/settings.js";
+	import { playVoice } from "$lib/utils/playVoice.js";
 
 	export let data;
 
@@ -310,33 +311,11 @@
 		}
 	}
 
-	async function playMessage(messageId: string) {
+	async function playMessage(messageId: string, voiceId?: string) {
 		let conversationId = $page.params.id;
 		const playMessage = messages.find((message) => message.id === messageId)?.content;
 
-		try {
-			const res: Response = await fetch(
-				`${base}/conversation/${conversationId}/message/${messageId}/play`,
-				{
-					method: "POST",
-					body: JSON.stringify({ message: playMessage }),
-				}
-			);
-
-			if (!res.ok) {
-				$error = "Error while async TTS.";
-				return;
-			}
-
-			const audioData = await res.arrayBuffer();
-			const blob = new Blob([audioData], { type: "audio/wav" });
-			const url = URL.createObjectURL(blob);
-			const audio = new Audio(url);
-			audio.play();
-		} catch (err) {
-			$error = "Error while async TTS.";
-			return;
-		}
+		playVoice(playMessage,voiceId);
 	}
 
 	let mediaRecorder: MediaRecorder;
@@ -502,7 +481,7 @@
 	on:retry={onRetry}
 	on:continue={onContinue}
 	on:vote={(event) => voteMessage(event.detail.score, event.detail.id)}
-	on:play={(event) => playMessage(event.detail.id)}
+	on:play={(event) => playMessage(event.detail.id, event.detail.voiceId)}
 	on:startRecording={() => startRecording()}
 	on:stopRecording={() => stopRecording()}
 	on:share={() => shareConversation($page.params.id, data.title)}

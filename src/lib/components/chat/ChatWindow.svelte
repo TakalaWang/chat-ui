@@ -64,6 +64,7 @@
 		stopRecording: void;
 		retry: { id: Message["id"]; content?: string };
 		continue: { id: Message["id"] };
+		play: { id: Message["id"]; voiceId: string | undefined };
 	}>();
 
 	const handleSubmit = () => {
@@ -231,7 +232,7 @@
 						model={currentModel}
 						on:retry
 						on:vote
-						on:play
+						on:play={({detail}) => dispatch("play", {id: detail.id, voiceId: assistant?.voiceId})}
 						on:continue
 					/>
 				</div>

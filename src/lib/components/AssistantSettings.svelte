@@ -11,6 +11,7 @@
 	import CarbonUpload from "~icons/carbon/upload";
 	import CarbonHelpFilled from "~icons/carbon/help";
 	import CarbonSettingsAdjust from "~icons/carbon/settings-adjust";
+	import CarbonPlay from "~icons/carbon/play";
 
 	import { useSettingsStore } from "$lib/stores/settings";
 	import { isHuggingChat } from "$lib/utils/isHuggingChat";
@@ -18,6 +19,7 @@
 	import TokensCounter from "./TokensCounter.svelte";
 	import HoverTooltip from "./HoverTooltip.svelte";
 	import { findCurrentModel } from "$lib/utils/models";
+	import { playVoice } from "$lib/utils/playVoice.js";
 
 	type ActionData = {
 		error: boolean;
@@ -36,6 +38,7 @@
 	let files: FileList | null = null;
 	const settings = useSettingsStore();
 	let modelId = "";
+	let voiceId = assistant?.voiceId ?? "";
 	let systemPrompt = assistant?.preprompt ?? "";
 	let dynamicPrompt = assistant?.dynamicPrompt ?? false;
 	let showModelSettings = Object.values(assistant?.generateSettings ?? {}).some((v) => !!v);
@@ -96,6 +99,23 @@
 	const regex = /{{\s?url=(.+?)\s?}}/g;
 	$: templateVariables = [...systemPrompt.matchAll(regex)].map((match) => match[1]);
 	$: selectedModel = models.find((m) => m.id === modelId);
+	$: {
+		if (assistant) {
+			assistant.voiceId = voiceId;
+		}
+  	}
+	
+	let voiceList = [
+		{ id: 'en-US-AvaNeural', displayName: 'Ava(Female)' },
+        { id: 'en-US-EmmaNeural', displayName: 'Emma(Female)' },
+		{ id: 'en-US-JennyNeural', displayName: 'Jenny(Female)' },
+		{ id: 'en-US-SaraNeural', displayName: 'Sara(Female)' },
+        { id: 'en-US-BrianNeural', displayName: 'Brian(Male)' },
+		{ id: 'en-US-DavisNeural', displayName: 'Davis(Male)' },
+		{ id: 'en-US-GuyNeural', displayName: 'Guy(Male)'},
+		{ id: 'en-US-TonyNeural', displayName: 'Tony(Male)' }
+    ];
+
 </script>
 
 <form
@@ -371,7 +391,28 @@
 					</div>
 				</div>
 			</label>
-
+			<label>
+				<div class="mb-1 font-semibold"> Voice </div>
+				<div class="flex gap-2">
+				<select
+					name="voiceId"
+					class="w-full rounded-lg border-2 border-gray-200 bg-gray-100 p-2"
+					bind:value={voiceId}
+				>
+					{#each voiceList as voice}
+						<option value={voice.id}>{voice.displayName}</option>
+					{/each}
+					<p class="text-xs text-red-500">{getError("voiceId", form)}</p>
+				</select>
+				<button
+					type="button"
+					class="flex aspect-square items-center gap-2 whitespace-nowrap rounded-lg border px-3 {showModelSettings
+						? 'border-blue-500/20 bg-blue-50 text-blue-600'
+						: ''}"
+					on:click={() => playVoice("hello, i'm an assistant.", voiceId)}
+				><CarbonPlay class="text-xs" /></button>
+			</div>
+			</label>
 			<label>
 				<div class="mb-1 font-semibold">User start messages</div>
 				<div class="grid gap-1.5 text-sm md:grid-cols-2">
