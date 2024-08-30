@@ -106,14 +106,10 @@
   	}
 	
 	let voiceList = [
-		{ id: 'en-US-AvaNeural', displayName: 'Ava(Female)' },
         { id: 'en-US-EmmaNeural', displayName: 'Emma(Female)' },
-		{ id: 'en-US-JennyNeural', displayName: 'Jenny(Female)' },
-		{ id: 'en-US-SaraNeural', displayName: 'Sara(Female)' },
         { id: 'en-US-BrianNeural', displayName: 'Brian(Male)' },
-		{ id: 'en-US-DavisNeural', displayName: 'Davis(Male)' },
-		{ id: 'en-US-GuyNeural', displayName: 'Guy(Male)'},
-		{ id: 'en-US-TonyNeural', displayName: 'Tony(Male)' }
+        { id: 'en-US-JennyNeural', displayName: 'Jenny(Female)' },
+		{ id: 'en-US-GuyNeural', displayName: 'Guy(Male)'}
     ];
 
 </script>
