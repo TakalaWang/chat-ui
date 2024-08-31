@@ -2,7 +2,7 @@
 	import ChatWindow from "$lib/components/chat/ChatWindow.svelte";
 	import { pendingMessage } from "$lib/stores/pendingMessage";
 	import { isAborted } from "$lib/stores/isAborted";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { goto, invalidateAll } from "$app/navigation";
 	import { base } from "$app/paths";
@@ -25,6 +25,7 @@
 	import type { v4 } from "uuid";
 	import { useSettingsStore } from "$lib/stores/settings.js";
 	import { playVoice } from "$lib/utils/playVoice.js";
+	import { recorder } from "$lib/utils/recorder.js";
 
 	export let data;
 
@@ -33,6 +34,7 @@
 	let loading = false;
 	let pending = false;
 	let recording = false;
+	let recognizing = false;
 	let message: string = "";
 
 	let files: File[] = [];
@@ -312,77 +314,91 @@
 	}
 
 	async function playMessage(messageId: string, voiceId?: string) {
-		let conversationId = $page.params.id;
 		const playMessage = messages.find((message) => message.id === messageId)?.content;
 
-		playVoice(playMessage,voiceId);
+		playVoice(playMessage, voiceId);
 	}
 
-	let mediaRecorder: MediaRecorder;
-	let audioChunks: Blob[] = [];
 	// TODO: need setting to PCM format for STT
 
 	async function startRecording() {
-		try {
-			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			mediaRecorder = new MediaRecorder(stream);
-			mediaRecorder.ondataavailable = (event) => {
-				audioChunks.push(event.data);
-			};
-		} catch (err) {
-			$error = "Error while accessing microphone.";
-			return;
-		}
-
+		await recorder.start();
 		recording = true;
-		mediaRecorder.start();
 	}
 
 	async function stopRecording() {
+		recognizing = true;
 		recording = false;
-		pending = true;
 
-		mediaRecorder.onstop = async () => {
-			const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-			const recordData = await audioBlob.arrayBuffer();
-			await recognizeRecording(recordData)
-				.then((text) => {
-					message = text;
-				})
-				.catch((err) => {
-					$error = "Error while async STT.";
-					console.error(err);
-				})
-				.finally(() => {
-					pending = false;
-					audioChunks = [];
-				});
-		};
-		mediaRecorder.stop();
+		const wav = await recorder.stop();
+		const ab = await wav.arrayBuffer();
+
+		try {
+			await recognizeRecording(ab);
+		} catch (err) {
+			$error = "Error while recognizing speech.";
+			console.error(err);
+		} finally {
+			recognizing = false;
+		}
 	}
 
-	async function recognizeRecording(recordData: ArrayBuffer): Promise<string> {
-		let conversationId = $page.params.id;
+	async function recognizeRecording(wav: ArrayBuffer): Promise<void> {
 		try {
-			console.log("recordData", recordData);
-			const res: Response = await fetch(`${base}/conversation/${conversationId}/recognize`, {
+			const res = await fetch(`${base}/api/voice/asr`, {
 				method: "POST",
 				headers: {
-					"Content-Type": "application/arraybuffer",
+					"Content-Type": "application/octet-stream",
 				},
-				body: recordData,
+				body: wav,
 			});
 
 			if (!res.ok) {
-				$error = "Error while async STT.";
-				return "";
+				const UNK_ERR = "Server error while recognizing speech.";
+				if (res.headers.get("content-type")?.includes("application/json")) {
+					$error = (await res.json()).error ?? UNK_ERR;
+				} else {
+					$error = UNK_ERR;
+				}
 			}
 
-			return await res.text();
+			const reader = res.body?.getReader();
+			const decoder = new TextDecoder("utf-8");
+			let partialStart = message.length;
+
+			if (reader) {
+				// eslint-disable-next-line no-constant-condition
+				while (true) {
+					const { value, done } = await reader.read();
+					if (done) {
+						break;
+					}
+
+					const chunk = decoder.decode(value, { stream: true });
+					const lines = chunk.split("\n");
+
+					for (const line of lines) {
+						if (line.startsWith("data: ")) {
+							try {
+								const data = JSON.parse(line.substring(6));
+								if (data.partial) {
+									message += data.partial;
+								}
+								if (data.text) {
+									message = message.substring(0, partialStart) + " " + data.text.trim();
+									partialStart = message.length;
+								}
+							} catch (err) {
+								console.error("Failed to parse SSE data:", err);
+							}
+						}
+					}
+				}
+			}
+			console.log("Speech recognition complete.");
 		} catch (err) {
-			$error = "Error while async STT.";
+			$error = "Unable to recognize speech.";
 			console.error(err);
-			return "";
 		}
 	}
 
@@ -392,6 +408,12 @@
 			files = $pendingMessage.files;
 			await writeMessage({ prompt: $pendingMessage.content });
 			$pendingMessage = undefined;
+		}
+	});
+
+	onDestroy(async () => {
+		if (recorder.isRecording()) {
+			await recorder.stop();
 		}
 	});
 
@@ -473,6 +495,7 @@
 	{loading}
 	{pending}
 	{recording}
+	{recognizing}
 	{message}
 	shared={data.shared}
 	preprompt={data.preprompt}
