@@ -315,7 +315,7 @@
 		let conversationId = $page.params.id;
 		const playMessage = messages.find((message) => message.id === messageId)?.content;
 
-		playVoice(playMessage,voiceId);
+		playVoice(playMessage, voiceId);
 	}
 
 	let mediaRecorder: MediaRecorder;

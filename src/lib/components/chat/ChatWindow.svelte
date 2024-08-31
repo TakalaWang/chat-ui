@@ -209,7 +209,7 @@
 						/>
 					{:else}
 						<div
-							class="size-6 flex items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
+							class="flex size-6 items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
 						>
 							{$page.data?.assistant.name[0]}
 						</div>
@@ -232,7 +232,8 @@
 						model={currentModel}
 						on:retry
 						on:vote
-						on:play={({detail}) => dispatch("play", {id: detail.id, voiceId: assistant?.voiceId})}
+						on:play={({ detail }) =>
+							dispatch("play", { id: detail.id, voiceId: assistant?.voiceId })}
 						on:continue
 					/>
 				</div>
