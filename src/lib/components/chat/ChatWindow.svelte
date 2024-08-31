@@ -40,6 +40,7 @@
 	export let loading = false;
 	export let pending = false;
 	export let recording = false;
+	export let recognizing = false;
 	export let message = "";
 
 	export let shared = false;
@@ -397,6 +398,12 @@
 							>
 								<CarbonStopFilledAlt />
 							</button>
+						{:else if recognizing}
+							<div
+								class="mx-1 my-1 flex h-[2.4rem] items-center p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
+							>
+								<EosIconsLoading />
+							</div>
 						{:else if !message}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"

@@ -73,6 +73,8 @@
 		"date-fns": "^2.29.3",
 		"dotenv": "^16.0.3",
 		"express": "^4.19.2",
+		"extendable-media-recorder": "^9.2.10",
+		"extendable-media-recorder-wav-encoder": "^7.0.114",
 		"file-type": "^19.0.0",
 		"google-auth-library": "^9.13.0",
 		"handlebars": "^4.7.8",
