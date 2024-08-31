@@ -35,12 +35,12 @@
 	import UploadedFile from "./UploadedFile.svelte";
 	import { useSettingsStore } from "$lib/stores/settings";
 	import type { ToolFront } from "$lib/types/Tool";
+	import { recorder } from "$lib/utils/recorder";
+	import { error } from "$lib/stores/errors";
 
 	export let messages: Message[] = [];
 	export let loading = false;
 	export let pending = false;
-	export let recording = false;
-	export let recognizing = false;
 	export let message = "";
 
 	export let shared = false;
@@ -171,6 +171,96 @@
 	];
 
 	$: isFileUploadEnabled = activeMimeTypes.length > 0;
+
+	let recording = false;
+	let recognizing = false;
+
+	async function startRecording() {
+		await recorder.start();
+		recording = true;
+	}
+
+	async function stopRecording() {
+		recognizing = true;
+		recording = false;
+
+		const wav = await recorder.stop();
+		const ab = await wav.arrayBuffer();
+
+		try {
+			await recognizeRecording(ab);
+		} catch (err) {
+			$error = "Error while recognizing speech.";
+			console.error(err);
+		} finally {
+			recognizing = false;
+		}
+	}
+
+	async function recognizeRecording(wav: ArrayBuffer): Promise<void> {
+		try {
+			const res = await fetch(`${base}/api/voice/asr`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/octet-stream",
+				},
+				body: wav,
+			});
+
+			if (!res.ok) {
+				const UNK_ERR = "Server error while recognizing speech.";
+				if (res.headers.get("content-type")?.includes("application/json")) {
+					$error = (await res.json()).error ?? UNK_ERR;
+				} else {
+					$error = UNK_ERR;
+				}
+			}
+
+			const reader = res.body?.getReader();
+			const decoder = new TextDecoder("utf-8");
+			let partialStart = message.length;
+
+			if (reader) {
+				// eslint-disable-next-line no-constant-condition
+				while (true) {
+					const { value, done } = await reader.read();
+					if (done) {
+						break;
+					}
+
+					const chunk = decoder.decode(value, { stream: true });
+					const lines = chunk.split("\n");
+
+					for (const line of lines) {
+						if (line.startsWith("data: ")) {
+							try {
+								const data = JSON.parse(line.substring(6));
+								if (data.partial) {
+									message += data.partial;
+								}
+								if (data.text) {
+									message = message.substring(0, partialStart) + " " + data.text.trim();
+									partialStart = message.length;
+								}
+							} catch (err) {
+								console.error("Failed to parse SSE data:", err);
+							}
+						}
+					}
+				}
+			}
+			console.log("Speech recognition complete.");
+		} catch (err) {
+			$error = "Unable to recognize speech.";
+			console.error(err);
+		}
+	}
+
+	onDestroy(async () => {
+		if (recorder.isRecording()) {
+			await recorder.stop();
+		}
+	});
 </script>
 
 <svelte:window
@@ -393,7 +483,7 @@
 						{:else if recording}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
-								on:click={() => dispatch("stopRecording")}
+								on:click={stopRecording}
 								type="button"
 							>
 								<CarbonStopFilledAlt />
@@ -407,7 +497,7 @@
 						{:else if !message}
 							<button
 								class="btn mx-1 my-1 h-[2.4rem] self-end rounded-lg bg-transparent p-1 px-[0.7rem] text-gray-400 enabled:hover:text-gray-700 disabled:opacity-60 enabled:dark:hover:text-gray-100 dark:disabled:opacity-40"
-								on:click={() => dispatch("startRecording")}
+								on:click={startRecording}
 								type="button"
 							>
 								<CarbonMicrophone />
