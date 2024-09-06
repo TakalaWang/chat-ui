@@ -1,11 +1,11 @@
 import { base } from "$app/paths";
 import { error } from "$lib/stores/errors";
 
-export async function playVoice(message?: string, voiceId?: string) {
+export async function playVoice(conversationId: string, messageId: string, voiceId?: string) {
 	try {
-		const res: Response = await fetch(`${base}/conversation/0/message/0/play`, {
+		const res = await fetch(`${base}/conversation/${conversationId}/message/${messageId}/play`, {
 			method: "POST",
-			body: JSON.stringify({ message, voiceId }),
+			body: JSON.stringify({ voiceId }),
 		});
 
 		if (!res.ok) {

@@ -311,9 +311,8 @@
 	}
 
 	async function playMessage(messageId: string, voiceId?: string) {
-		const playMessage = messages.find((message) => message.id === messageId)?.content;
-
-		playVoice(playMessage, voiceId);
+		const conversationId = $page.params.id;
+		playVoice(conversationId, messageId, voiceId);
 	}
 
 	onMount(async () => {
