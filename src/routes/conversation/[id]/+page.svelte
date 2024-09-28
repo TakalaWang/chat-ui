@@ -2,7 +2,7 @@
 	import ChatWindow from "$lib/components/chat/ChatWindow.svelte";
 	import { pendingMessage } from "$lib/stores/pendingMessage";
 	import { isAborted } from "$lib/stores/isAborted";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { goto, invalidateAll } from "$app/navigation";
 	import { base } from "$app/paths";
@@ -310,9 +310,15 @@
 		}
 	}
 
+	let audioPlayer: HTMLAudioElement | undefined = undefined;
 	async function playMessage(messageId: string, voiceId?: string) {
 		const conversationId = $page.params.id;
-		playVoice(conversationId, messageId, voiceId);
+		audioPlayer = await playVoice(conversationId, messageId, voiceId);
+		audioPlayer?.play();
+	}
+
+	async function stopAudio() {
+		audioPlayer?.pause();
 	}
 
 	onMount(async () => {
@@ -322,6 +328,10 @@
 			await writeMessage({ prompt: $pendingMessage.content });
 			$pendingMessage = undefined;
 		}
+	});
+
+	onDestroy(async () => {
+		stopAudio();
 	});
 
 	async function onMessage(event: CustomEvent<string>) {
@@ -410,6 +420,7 @@
 	on:continue={onContinue}
 	on:vote={(event) => voteMessage(event.detail.score, event.detail.id)}
 	on:play={(event) => playMessage(event.detail.id, event.detail.voiceId)}
+	on:stopAudio={stopAudio}
 	on:share={() => shareConversation($page.params.id, data.title)}
 	on:stop={() => (($isAborted = true), (loading = false))}
 	models={data.models}

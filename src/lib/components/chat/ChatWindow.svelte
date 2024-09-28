@@ -61,6 +61,7 @@
 		message: string;
 		share: void;
 		stop: void;
+		stopAudio: void;
 		startRecording: void;
 		stopRecording: void;
 		retry: { id: Message["id"]; content?: string };
@@ -300,7 +301,7 @@
 						/>
 					{:else}
 						<div
-							class="flex size-6 items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
+							class="size-6 flex items-center justify-center rounded-full bg-gray-300 font-bold uppercase text-gray-500"
 						>
 							{$page.data?.assistant.name[0]}
 						</div>
@@ -314,36 +315,41 @@
 
 			{#if messages.length > 0}
 				<div class="flex h-max flex-col gap-8 pb-52">
+					{#key $page.url}
+						<ChatMessage
+							{loading}
+							{messages}
+							id={messages[0].id}
+							isAuthor={!shared}
+							readOnly={isReadOnly}
+							model={currentModel}
+							on:retry
+							on:vote
+							on:play={({ detail }) =>
+								dispatch("play", { id: detail.id, voiceId: assistant?.voiceId })}
+							on:stopAudio={() => dispatch("stopAudio")}
+							on:continue
+						/>
+					{/key}
+				</div>
+			{:else if pending}
+				{#key $page.url}
 					<ChatMessage
-						{loading}
-						{messages}
-						id={messages[0].id}
+						loading={true}
+						messages={[
+							{
+								id: "0-0-0-0-0",
+								content: "",
+								from: "assistant",
+								children: [],
+							},
+						]}
+						id={"0-0-0-0-0"}
 						isAuthor={!shared}
 						readOnly={isReadOnly}
 						model={currentModel}
-						on:retry
-						on:vote
-						on:play={({ detail }) =>
-							dispatch("play", { id: detail.id, voiceId: assistant?.voiceId })}
-						on:continue
 					/>
-				</div>
-			{:else if pending}
-				<ChatMessage
-					loading={true}
-					messages={[
-						{
-							id: "0-0-0-0-0",
-							content: "",
-							from: "assistant",
-							children: [],
-						},
-					]}
-					id={"0-0-0-0-0"}
-					isAuthor={!shared}
-					readOnly={isReadOnly}
-					model={currentModel}
-				/>
+				{/key}
 			{:else if !assistant}
 				<ChatIntroduction
 					{models}

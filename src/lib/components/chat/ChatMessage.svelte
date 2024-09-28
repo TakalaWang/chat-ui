@@ -2,12 +2,13 @@
 	import { marked, type MarkedOptions } from "marked";
 	import markedKatex from "marked-katex-extension";
 	import type { Message } from "$lib/types/Message";
-	import { afterUpdate, createEventDispatcher, tick } from "svelte";
+	import { afterUpdate, createEventDispatcher, onDestroy, tick, onMount } from "svelte";
 	import { deepestChild } from "$lib/utils/deepestChild";
 	import { page } from "$app/stores";
 
 	import CodeBlock from "../CodeBlock.svelte";
 	import CopyToClipBoardBtn from "../CopyToClipBoardBtn.svelte";
+	import EosIconsLoading from "~icons/eos-icons/loading";
 	import IconLoading from "../icons/IconLoading.svelte";
 	import CarbonRotate360 from "~icons/carbon/rotate-360";
 	import CarbonTrashCan from "~icons/carbon/trash-can";
@@ -15,6 +16,7 @@
 	import CarbonThumbsUp from "~icons/carbon/thumbs-up";
 	import CarbonThumbsDown from "~icons/carbon/thumbs-down";
 	import CarbonPlay from "~icons/carbon/volume-up";
+	import CarbonStop from "~icons/carbon/stop-filled-alt";
 	import CarbonPen from "~icons/carbon/pen";
 	import CarbonChevronLeft from "~icons/carbon/chevron-left";
 	import CarbonChevronRight from "~icons/carbon/chevron-right";
@@ -35,6 +37,7 @@
 	import { useSettingsStore } from "$lib/stores/settings";
 	import DOMPurify from "isomorphic-dompurify";
 	import { enhance } from "$app/forms";
+	import { isPlaying, waitingForAudio } from "$lib/utils/playVoice";
 
 	function sanitizeMd(md: string) {
 		let ret = md
@@ -73,6 +76,7 @@
 	$: urlNotTrailing = $page.url.pathname.replace(/\/$/, "");
 
 	const dispatch = createEventDispatcher<{
+		stopAudio: void;
 		retry: { content?: string; id: Message["id"] };
 		vote: { score: Message["score"]; id: Message["id"] };
 		play: { id: Message["id"] };
@@ -210,6 +214,10 @@
 	const convTreeStore = useConvTreeStore();
 
 	$: if (message.children?.length === 0) $convTreeStore.leaf = message.id;
+
+	onDestroy(() => {
+		dispatch("stopAudio");
+	});
 </script>
 
 {#if message.from === "assistant"}
@@ -348,14 +356,38 @@
 					classNames="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
 					value={message.content}
 				/>
-				<button
-					class="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
-					title="Play"
-					type="button"
-					on:click={() => dispatch("play", { id: message.id })}
-				>
-					<CarbonPlay />
-				</button>
+				{#if $isPlaying}
+					<button
+						class="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
+						title="Stop"
+						type="button"
+						on:click={() => {
+							dispatch("stopAudio");
+						}}
+					>
+						<CarbonStop />
+					</button>
+				{:else if $waitingForAudio}
+					<button
+						class="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
+						title="Waiting for audio"
+						type="button"
+						disabled
+					>
+						<EosIconsLoading />
+					</button>
+				{:else}
+					<button
+						class="btn rounded-sm p-1 text-sm text-gray-400 hover:text-gray-500 focus:ring-0 dark:text-gray-400 dark:hover:text-gray-300"
+						title="Play"
+						type="button"
+						on:click={() => {
+							dispatch("play", { id: message.id });
+						}}
+					>
+						<CarbonPlay />
+					</button>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -476,6 +508,7 @@
 		on:retry
 		on:vote
 		on:play
+		on:stopAudio
 		on:continue
 	>
 		<svelte:fragment slot="childrenNav">

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
+	import { beforeNavigate, goto, onNavigate } from "$app/navigation";
 	import { base } from "$app/paths";
 	import { page } from "$app/stores";
 	import { env as envPublic } from "$env/dynamic/public";
@@ -8,7 +8,7 @@
 	import { pendingMessage } from "$lib/stores/pendingMessage";
 	import { useSettingsStore } from "$lib/stores/settings.js";
 	import { findCurrentModel } from "$lib/utils/models";
-	import { onMount } from "svelte";
+	import { beforeUpdate, onMount } from "svelte";
 
 	export let data;
 	let loading = false;

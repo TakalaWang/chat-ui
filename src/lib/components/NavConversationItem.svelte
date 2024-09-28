@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from "$app/paths";
 	import { page } from "$app/stores";
-	import { createEventDispatcher } from "svelte";
+	import { createEventDispatcher, onDestroy } from "svelte";
 
 	import CarbonCheckmark from "~icons/carbon/checkmark";
 	import CarbonTrashCan from "~icons/carbon/trash-can";
