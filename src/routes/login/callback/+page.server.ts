@@ -10,7 +10,13 @@ const allowedUserEmails = z
 	.array(z.string().email())
 	.optional()
 	.default([])
-	.parse(JSON5.parse(env.ALLOWED_USER_EMAILS));
+	.parse(JSON5.parse(env.ALLOWED_USER_EMAILS || "[]"));
+
+const blacklistedEmails = z
+	.array(z.string().email())
+	.optional()
+	.default([])
+	.parse(JSON5.parse(env.BLOCKED_USER_EMAILS || "[]"));
 
 export async function load({ url, locals, cookies, request, getClientAddress }) {
 	const { error: errorName, error_description: errorDescription } = z
@@ -46,18 +52,21 @@ export async function load({ url, locals, cookies, request, getClientAddress }) 
 		iss
 	);
 
+	if (!userData.email) {
+		error(403, "User not allowed: email not returned");
+	}
+
+	if (userData.email_verified === false) {
+		error(403, "User not allowed: email not verified");
+	}
+
 	// Filter by allowed user emails
-	if (allowedUserEmails.length > 0) {
-		if (!userData.email) {
-			error(403, "User not allowed: email not returned");
-		}
-		const emailVerified = userData.email_verified ?? true;
-		if (!emailVerified) {
-			error(403, "User not allowed: email not verified");
-		}
-		if (!allowedUserEmails.includes(userData.email)) {
-			error(403, "User not allowed");
-		}
+	if (allowedUserEmails.length > 0 && !allowedUserEmails.includes(userData.email)) {
+		error(403, "User not allowed");
+	}
+
+	if (blacklistedEmails.length > 0 && blacklistedEmails.includes(userData.email)) {
+		error(403, "User not allowed");
 	}
 
 	await updateUser({
